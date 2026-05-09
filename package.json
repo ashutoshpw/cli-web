@@ -14,6 +14,10 @@
     "prepublishOnly": "tsc",
     "build": "tsc",
     "start": "npm run build && node dist/index.js",
+    "pm2:start": "npm run build && pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop cli-web",
+    "pm2:restart": "npm run build && pm2 restart cli-web",
+    "pm2:logs": "pm2 logs cli-web",
     "dev": "tsx src/index.ts"
   },
   "keywords": ["cli", "terminal", "web", "pty", "websocket"],
