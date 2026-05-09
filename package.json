@@ -1,10 +1,10 @@
 {
-  "name": "tmux-web",
+  "name": "cli-web",
   "version": "0.1.0",
-  "description": "Access tmux sessions from your browser via a web-based terminal",
+  "description": "Run any CLI from your browser via a web-based terminal",
   "type": "module",
   "bin": {
-    "tmux-web": "dist/index.js"
+    "cli-web": "dist/index.js"
   },
   "files": [
     "dist"
@@ -14,13 +14,13 @@
     "prepublishOnly": "tsc",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "npx tsx src/index.ts"
+    "dev": "tsx src/index.ts"
   },
-  "keywords": ["tmux", "terminal", "web", "pty", "websocket"],
+  "keywords": ["cli", "terminal", "web", "pty", "websocket"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ashutoshpw/tmux-web"
+    "url": "https://github.com/ashutoshpw/cli-web"
   },
   "engines": {
     "node": ">=18"

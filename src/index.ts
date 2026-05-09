@@ -3,52 +3,58 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { WebSocketServer, WebSocket } from "ws";
 import * as pty from "node-pty";
-import { listSessions } from "./sessions.js";
-import { renderLanding, renderTerminal } from "./frontend.js";
+import { renderTerminal } from "./frontend.js";
 
 type ClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number };
 
 const activePtys = new Set<pty.IPty>();
+const commandArgs = process.argv.slice(2);
+const command = commandArgs[0];
+const commandDisplay = commandArgs.length > 0 ? commandArgs.join(" ") : "";
 
 const app = new Hono();
 
 app.get("/", (c) => {
-	const sessions = listSessions();
-	return c.html(renderLanding(sessions));
-});
-
-app.get("/s/:session", (c) => {
-	const session = decodeURIComponent(c.req.param("session"));
-	return c.html(renderTerminal(session));
+	return c.html(renderTerminal(commandDisplay));
 });
 
 const port = parseInt(process.env.PORT || "3000", 10);
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
-	console.log(`tmux-web running at http://localhost:${info.port}`);
+	console.log(`cli-web running at http://localhost:${info.port}`);
+	if (!command) {
+		console.log("No CLI command provided. Usage: cli-web <command> [...args]");
+	} else {
+		console.log(`Running: ${commandDisplay}`);
+	}
 });
 
 const wss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (req, socket, head) => {
 	const url = new URL(req.url || "/", `http://${req.headers.host}`);
-	const match = url.pathname.match(/^\/ws\/(.+)$/);
-	if (!match) {
+	if (url.pathname !== "/ws") {
 		socket.destroy();
 		return;
 	}
 	wss.handleUpgrade(req, socket, head, (ws) => {
-		wss.emit("connection", ws, req, decodeURIComponent(match[1]));
+		wss.emit("connection", ws, req);
 	});
 });
 
-wss.on("connection", (ws: WebSocket, _req: import("http").IncomingMessage, sessionName: string) => {
+wss.on("connection", (ws: WebSocket) => {
 	let ptyProcess: pty.IPty | null = null;
 
+	if (!command) {
+		ws.send("\r\n\x1b[31mNo CLI command provided. Usage: cli-web <command> [...args]\x1b[0m\r\n");
+		ws.close(1008, "missing command");
+		return;
+	}
+
 	try {
-		ptyProcess = pty.spawn("tmux", ["attach-session", "-t", sessionName], {
+		ptyProcess = pty.spawn(command, commandArgs.slice(1), {
 			name: "xterm-256color",
 			cols: 80,
 			rows: 24,
@@ -57,7 +63,7 @@ wss.on("connection", (ws: WebSocket, _req: import("http").IncomingMessage, sessi
 		});
 	} catch (err: any) {
 		ws.send(
-			`\r\n\x1b[31mFailed to attach to tmux session "${sessionName}": ${err.message}\x1b[0m\r\n`,
+			`\r\n\x1b[31mFailed to start ${commandDisplay}: ${err.message}\x1b[0m\r\n`,
 		);
 		ws.close(1011, "pty spawn failed");
 		return;
@@ -76,7 +82,7 @@ wss.on("connection", (ws: WebSocket, _req: import("http").IncomingMessage, sessi
 		ptyProcess = null;
 		if (ws.readyState === WebSocket.OPEN) {
 			ws.send(
-				`\r\n\x1b[2m--- tmux exited (code ${exitCode}) ---\x1b[0m\r\n`,
+				`\r\n\x1b[2m--- ${commandDisplay} exited (code ${exitCode}) ---\x1b[0m\r\n`,
 			);
 			ws.close(1000, "pty exited");
 		}

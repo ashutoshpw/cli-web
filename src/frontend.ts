@@ -1,10 +1,12 @@
-export function renderTerminal(sessionName: string): string {
+export function renderTerminal(command: string): string {
+	const title = command || "cli-web";
+
 	return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>tmux: ${sessionName}</title>
+<title>cli-web: ${escapeHtml(title)}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
   :root {
@@ -64,8 +66,8 @@ export function renderTerminal(sessionName: string): string {
 </head>
 <body>
 <header>
-  <h1>tmux</h1>
-  <span class="session">${sessionName}</span>
+  <h1>cli</h1>
+  <span class="session">${escapeHtml(title)}</span>
   <div class="status">
     <div class="dot" id="status-dot"></div>
     <span id="status-text">connecting</span>
@@ -200,7 +202,7 @@ function setConnected(ok) {
 }
 
 const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-const wsUrl = proto + '//' + location.host + '/ws/${sessionName}';
+const wsUrl = proto + '//' + location.host + '/ws';
 let reconnectDelay = 1000;
 const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(navigator.userAgent);
 
@@ -307,66 +309,11 @@ connect();
 </html>`;
 }
 
-export function renderLanding(
-	sessions: Array<{ name: string; windows: number; attached: boolean }>,
-): string {
-	const rows = sessions
-		.map(
-			(s) =>
-				`<a href="/s/${encodeURIComponent(s.name)}" class="session-row">
-      <span class="name">${s.name}</span>
-      <span class="meta">${s.windows} window${s.windows !== 1 ? "s" : ""}${s.attached ? " &middot; attached" : ""}</span>
-    </a>`,
-		)
-		.join("\n");
-
-	const empty = sessions.length === 0
-		? `<p class="empty">No tmux sessions found.<br>Create one with <code>tmux new -s mysession</code></p>`
-		: "";
-
-	return /* html */ `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>tmux-web</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
-  :root {
-    --page-bg: #111111;
-    --page-fg: #d0d0d0;
-    --panel-bg: #11161d;
-    --panel-border: #243241;
-    --panel-muted: #8a97a6;
-    --panel-accent: #f3f7fb;
-    --panel-success: #73c991;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { background: var(--page-bg); color: var(--page-fg); min-height: 100%; font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace; }
-  .container { max-width: 520px; margin: 80px auto; padding: 0 20px; }
-  h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--panel-accent); margin-bottom: 32px; }
-  .session-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 16px; border: 1px solid var(--panel-border); border-radius: 8px;
-    margin-bottom: 8px; text-decoration: none; color: var(--page-fg);
-    background: var(--panel-bg); transition: border-color 0.15s;
-  }
-  .session-row:hover { border-color: var(--panel-success); }
-  .session-row .name { font-size: 14px; font-weight: 500; color: var(--panel-accent); }
-  .session-row .meta { font-size: 11px; color: var(--panel-muted); }
-  .empty { font-size: 13px; color: var(--panel-muted); line-height: 1.6; }
-  .empty code { background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-  .refresh { display: inline-block; margin-top: 24px; font-size: 12px; color: var(--panel-muted); text-decoration: none; border: 1px solid var(--panel-border); padding: 6px 14px; border-radius: 6px; }
-  .refresh:hover { border-color: var(--panel-accent); color: var(--panel-accent); }
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>tmux sessions</h1>
-  ${rows}
-  ${empty}
-  <a href="/" class="refresh">refresh</a>
-</div>
-</body>
-</html>`;
+function escapeHtml(value: string): string {
+	return value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;")
+		.replaceAll("'", "&#39;");
 }
