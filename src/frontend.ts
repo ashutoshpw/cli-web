@@ -303,6 +303,16 @@ container.addEventListener('pointerup', (event) => {
   }
 }, true);
 
+if ('virtualKeyboard' in navigator) {
+  navigator.virtualKeyboard.overlaysContent = true;
+  document.addEventListener('focusin', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      e.target.virtualKeyboardPolicy = 'manual';
+      navigator.virtualKeyboard.hide();
+    }
+  });
+}
+
 connect();
 </script>
 </body>
