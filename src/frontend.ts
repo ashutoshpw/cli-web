@@ -1,12 +1,18 @@
-export function renderTerminal(command: string): string {
-	const title = command || "cli-web";
+export function renderTerminal(command: string, appName: string = "cli"): string {
+	const title = command || appName;
 
 	return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>cli-web: ${escapeHtml(title)}</title>
+<title>${escapeHtml(appName)}: ${escapeHtml(title)}</title>
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#11161d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="${escapeHtml(appName)}" />
+<link rel="apple-touch-icon" href="/icon.svg" />
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
   :root {

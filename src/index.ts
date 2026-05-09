@@ -10,14 +10,47 @@ type ClientMessage =
 	| { type: "resize"; cols: number; rows: number };
 
 const activePtys = new Set<pty.IPty>();
-const commandArgs = process.argv.slice(2);
+
+const rawArgs = process.argv.slice(2);
+let appName = "cli";
+const filteredArgs: string[] = [];
+for (let i = 0; i < rawArgs.length; i++) {
+	if (rawArgs[i] === "--name" && i + 1 < rawArgs.length) {
+		appName = rawArgs[++i];
+	} else {
+		filteredArgs.push(rawArgs[i]);
+	}
+}
+
+const commandArgs = filteredArgs;
 const command = commandArgs[0];
 const commandDisplay = commandArgs.length > 0 ? commandArgs.join(" ") : "";
 
 const app = new Hono();
 
 app.get("/", (c) => {
-	return c.html(renderTerminal(commandDisplay));
+	return c.html(renderTerminal(commandDisplay, appName));
+});
+
+app.get("/manifest.webmanifest", (_c) => {
+	return new Response(
+		JSON.stringify({
+			name: appName,
+			short_name: appName,
+			display: "standalone",
+			start_url: "/",
+			background_color: "#111111",
+			theme_color: "#11161d",
+			icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
+		}),
+		{ headers: { "Content-Type": "application/manifest+json" } },
+	);
+});
+
+app.get("/icon.svg", (_c) => {
+	const escaped = appName.slice(0, 2).toUpperCase();
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="#11161d"/><text x="96" y="125" font-family="monospace" font-size="72" font-weight="bold" fill="#73c991" text-anchor="middle">${escaped}</text></svg>`;
+	return new Response(svg, { headers: { "Content-Type": "image/svg+xml" } });
 });
 
 const port = parseInt(process.env.PORT || "3000", 10);
